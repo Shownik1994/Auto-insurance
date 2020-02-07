@@ -1,0 +1,533 @@
+################### PACKAGES REQUIRED FOR LINEAR REGRESSION MODEL #################
+library(boot) 
+library(car)
+library(QuantPsyc)
+library(lmtest)
+library(sandwich)
+library(vars)
+library(nortest)
+library(MASS)
+
+############### SETTING UP THE WORKING DIRECTORY FOR THE RAW DATA FILE ############
+
+setwd("C:\\Users\\SHOWNIK\\Desktop\\Backup") ## setting up working directory.
+
+AutoInsurance <- read.csv("Auto_Insurance.csv") ## importing the data file into R and saving it as "AutoInsurance".
+
+MotorInsurance = AutoInsurance ## Making a copy of the data set "AutoInsurance".
+
+str(AutoInsurance) ## Checking the data types of all the variables in the data set "AutoInsurance".
+
+##### CONVERSION OF INDEPENDENT NUMERICAL/INTEGER VARIABLES TO CATEGORICAL(Factors) ######
+
+AutoInsurance$Number_of_Policies <- as.factor(AutoInsurance$Number_of_Policies) ## Converting necessary variable "Number of Policies" into factor.
+
+############################## DIVIDING DATA SET INTO TRAIN AND TEST ######################################
+
+library(ISLR)
+attach(AutoInsurance)
+smp_siz = floor(0.50*nrow(AutoInsurance))  # creates a value for dividing the data into train and test. In this case the value is defined as 50% of the number of rows in the dataset
+smp_siz  # shows the value of the sample size
+set.seed(123)   # set seed to ensure you always have same random numbers generated
+train_ind = sample(seq_len(nrow(AutoInsurance)),size = smp_siz)  # Randomly identifies the rows equal to sample size (defined in previous instruction) from  all the rows of Smarket dataset and stores the row number in train_ind
+AutoInsurance_training = AutoInsurance[train_ind,] #creates the training dataset with row numbers stored in train_ind
+AutoInsurance_testing = AutoInsurance[-train_ind,]  # creates the test dataset excluding the row numbers mentioned in train_ind
+
+################################ OUTLIER TREATMENT #################################
+
+summary(AutoInsurance_training) ## calculating the descriptive statistics of the data file "AutoInsurance_training" i.e Mean, Median, Q1, Q3, Min, Max.
+
+############# VARIABLE: Customer.Lifetime.Value #############
+
+############ REMOVAL 1 ##############
+
+boxplot(AutoInsurance_training$Customer.Lifetime.Value) ## Finding the outlier is dependent variable "Customer.Lifetime.Value".
+
+quantile(AutoInsurance_training$Customer.Lifetime.Value, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Customer.Lifetime.Value" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Customer.Lifetime.Value < 24000, ] ## Removing the outliers present above 95% quantile value in "Customer.Lifetime.Value" and saving the rest.
+
+############ REMOVAL 2 ##############
+
+boxplot(AutoInsurance_training$Customer.Lifetime.Value) ## Finding the outlier is dependent variable "Customer.Lifetime.Value".
+
+quantile(AutoInsurance_training$Customer.Lifetime.Value, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Customer.Lifetime.Value" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Customer.Lifetime.Value < 21000, ] ## Removing the outliers present above 95% quantile value in "Customer.Lifetime.Value" and saving the rest.
+
+############# REMOVAL 3 #############
+
+boxplot(AutoInsurance_training$Customer.Lifetime.Value) ## Finding the outlier is dependent variable "Customer.Lifetime.Value".
+
+quantile(AutoInsurance_training$Customer.Lifetime.Value, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Customer.Lifetime.Value" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Customer.Lifetime.Value < 18000, ] ## Removing the outliers present above 95% quantile value in "Customer.Lifetime.Value" and saving the rest.
+
+############# REMOVAL 4 #############
+
+boxplot(AutoInsurance_training$Customer.Lifetime.Value) ## Finding the outlier is dependent variable "Customer.Lifetime.Value".
+
+quantile(AutoInsurance_training$Customer.Lifetime.Value, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Customer.Lifetime.Value" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Customer.Lifetime.Value < 15000, ] ## Removing the outliers present above 95% quantile value in "Customer.Lifetime.Value" and saving the rest.
+
+boxplot(AutoInsurance_training$Customer.Lifetime.Value) ## Finding the outlier is dependent variable "Customer.Lifetime.Value".
+
+## Hence, most of the outliers are removed from the Dependent variable "Customer.Lifetime.Variable".
+
+################# CALCULATION NUMBER OF ROWS REMOVED ################
+
+Rows_Removed <- nrow(AutoInsurance_testing)- nrow(AutoInsurance_training) ## Calculating number of rows removed from the original data set "AutoInsurance_training".
+
+Rows_Removed ## Displaying the number of rows removed from the original data set "AutoInsurance_training".
+
+############ VARIABLE: Income ##############
+
+########## REMOVAL 1 ###############
+
+boxplot(AutoInsurance_training$Income) ## Finding the outlier in the independent variable "Income".
+
+quantile(AutoInsurance_training$Income, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Income" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Income > 50, ] ## Removing the outliers present below 25% quantile value in "Income" and saving the rest.
+
+boxplot(AutoInsurance_training$Income) ## Finding the outlier is dependent variable "Income".
+
+quantile(AutoInsurance_training$Income, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Income" and the outliers present.
+
+## Hence, most of the outliers are removed from the Independent variable "Income".
+
+################# CALCULATION NUMBER OF ROWS REMOVED ################
+
+Rows_Removed <- nrow(AutoInsurance_testing)- nrow(AutoInsurance_training) ## Calculating number of rows removed from the original data set "AutoInsurance_training".
+
+Rows_Removed ## Displaying the number of rows removed from the original data set "AutoInsurance_training".
+
+nrow(AutoInsurance_training) ## Displaying the number of rows remaining in the data set "AutoInsurance_training".
+
+################ VARIABLE: Monthly.Premium.Auto #################
+
+########## REMOVAL 1 ###############
+
+boxplot(AutoInsurance_training$Monthly.Premium.Auto) ## Finding the outlier in the independent variable "Monthly.Premium.Auto".
+
+quantile(AutoInsurance_training$Monthly.Premium.Auto, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Monthly.Premium.Auto" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Monthly.Premium.Auto < 200, ] ## Removing the outliers present above 99% quantile value in "Monthly.Premium.Auto" and saving the rest.
+
+########## REMOVAL 2 ###############
+
+boxplot(AutoInsurance_training$Monthly.Premium.Auto) ## Finding the outlier is dependent variable "Monthly.Premium.Auto".
+
+quantile(AutoInsurance_training$Monthly.Premium.Auto, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Monthly.Premium.Auto" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Monthly.Premium.Auto < 180, ] ## Removing the outliers present above 95% quantile value in "Monthly.Premium.Auto" and saving the rest.
+
+########## REMOVAL 3 ###############
+
+boxplot(AutoInsurance_training$Monthly.Premium.Auto) ## Finding the outlier is dependent variable "Monthly.Premium.Auto".
+
+quantile(AutoInsurance_training$Monthly.Premium.Auto, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Monthly.Premium.Auto" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Monthly.Premium.Auto < 170, ] ## Removing the outliers present below 99.5% quantile value in "Monthly.Premium.Auto" and saving the rest.
+
+########## REMOVAL 4 ###############
+
+boxplot(AutoInsurance_training$Monthly.Premium.Auto) ## Finding the outlier is dependent variable "Monthly.Premium.Auto".
+
+quantile(AutoInsurance_training$Monthly.Premium.Auto, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## Finding the quantiles of the variable "Monthly.Premium.Auto" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Monthly.Premium.Auto < 165, ] ## Removing the outliers present below 99% quantile value in "Monthly.Premium.Auto" and saving the rest.
+
+boxplot(AutoInsurance_training$Monthly.Premium.Auto) ## Finding the outlier is dependent variable "Monthly.Premium.Auto".
+
+## Hence, most of the outliers are removed from the Independent variable "Monthly.Premium.Auto".
+
+################# CALCULATION NUMBER OF ROWS REMOVED ################
+
+Rows_Removed <- nrow(AutoInsurance_testing)- nrow(AutoInsurance_training) ## Calculating number of rows removed from the original data set "AutoInsurance_training".
+
+Rows_Removed ## Displaying the number of rows removed from the original data set "AutoInsurance_training".
+
+nrow(AutoInsurance_training) ## Displaying the number of rows remaining in the data set "AutoInsurance_training".
+
+############ VARIABLE: Total.Claim.Amount ##############
+
+############ REMOVAL 1 ############
+
+boxplot(AutoInsurance_training$Total.Claim.Amount) ## Finding the outlier is independent variable "Total.Claim.Amount".
+
+quantile(AutoInsurance_training$Total.Claim.Amount, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## finding the quantiles of the variable "Total.Claim.Amount" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Total.Claim.Amount < 1200 , ] ## removing the outliers present above 99.5% quantile value in "Total.Claim.Amount" and saving the rest.
+
+############ REMOVAL 2 ##########
+
+boxplot(AutoInsurance_training$Total.Claim.Amount) ## Finding the outlier is independent variable "Total.Claim.Amount".
+
+quantile(AutoInsurance_training$Total.Claim.Amount, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## finding the quantiles of the variable "Total.Claim.Amount" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Total.Claim.Amount < 1100 , ] ## removing the outliers present above 99.5% quantile value in "Total.Claim.Amount" and saving the rest.
+
+############ REMOVAL 3 ##########
+
+boxplot(AutoInsurance_training$Total.Claim.Amount) ## Finding the outlier is independent variable "Total.Claim.Amount".
+
+quantile(AutoInsurance_training$Total.Claim.Amount, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## finding the quantiles of the variable "Total.Claim.Amount" and the outliers present.
+
+AutoInsurance_training <-AutoInsurance_training[AutoInsurance_training$Total.Claim.Amount < 1000 , ] ## removing the outliers present above 99.5% quantile value in "Total.Claim.Amount" and saving the rest.
+
+############ REMOVAL 4 ##########
+
+boxplot(AutoInsurance_training$Total.Claim.Amount) ## Finding the outlier is independent variable "Total.Claim.Amount".
+
+quantile(AutoInsurance_training$Total.Claim.Amount, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## finding the quantiles of the variable "Total.Claim.Amount" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Total.Claim.Amount < 950 , ] ## removing the outliers present above 99.5% quantile value in "Total.Claim.Amount" and saving the rest.
+
+############ REMOVAL 5 ##########
+
+boxplot(AutoInsurance_training$Total.Claim.Amount) ## Finding the outlier is independent variable "Total.Claim.Amount".
+
+quantile(AutoInsurance_training$Total.Claim.Amount, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1)) ## finding the quantiles of the variable "Total.Claim.Amount" and the outliers present.
+
+AutoInsurance_training <- AutoInsurance_training[AutoInsurance_training$Total.Claim.Amount < 940 , ] ## removing the outliers present above 99.5% quantile value in "Total.Claim.Amount" and saving the rest.
+
+boxplot(AutoInsurance_training$Total.Claim.Amount) ## Finding the outlier is independent variable "Total.Claim.Amount".
+
+## Hence the outliers are removed from the variable "Total.Claim.Amount"
+
+################# CALCULATION NUMBER OF ROWS REMOVED ################
+
+Rows_Removed <- nrow(AutoInsurance_testing)- nrow(AutoInsurance_training) ## Calculating number of rows removed from the original data set "AutoInsurance_training".
+
+Rows_Removed ## Displaying the number of rows removed from the original data set "AutoInsurance_training".
+
+nrow(AutoInsurance_training) ## Displaying the number of rows remaining in the data set "AutoInsurance_training".
+
+################ MISSING VALUE TREATMENT #################
+
+sapply(AutoInsurance_training, function(x) sum(is.na(x))) ## checking for any missing value in the data set "AutoInsurance_training" if present.
+
+## Hence it is found that there is no missing values present in the data set "AutoInsurance_training".
+
+############################# MODEL CREATION ##############################
+
+names(AutoInsurance_training) ## finding all the variable names of the data set "AutoInsurance_training".
+
+## The Independent variables which are removed prior the modelling are as they doesn't influence the CLV: 
+## "Customer", 
+## "Effective.To.Date"
+## "Response"
+## "Sales.Channel"
+## "Renew.Offer.Type"
+## "Number_of_Open_Complaints"      
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ State + Coverage + Education + EmploymentStatus + Gender + Income + Location.Code 
++ Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim + Months.Since.Policy.Inception + Number_of_Policies + Policy.Type 
++ Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training".
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+############################### MODEL VALIDATION #####################################
+
+###################################### 1. ANOVA ################################################
+## Null Hypothesis: the co-efficient of all the independent variables is equal to zero.
+## Alternate hypothesis: At least one of the co-efficient of all the independent variables is not equal to zero.
+## In this model as the P-Value of the whole model is less than Alpha (0.05)/Level of Significance.
+## Hence, we reject the null hypothesis, which proves that at least one of the independent variables is having co-efficient not equals to zero.
+
+###################################### 2. P-VALUE ###############################################
+## Null Hypothesis: Co-efficient of the Each Individual Independent Variable is zero.
+## Alternate Hypothesis: Co-efficient of the Each Individual Independent Variable is not zero.
+## So, we need to check for the P-value of each and every individual independent variable which is less than Alpha/Level of Significance (0.05).
+## We need to keep the Independent Variables (Significant Variables) whose P-value is less and remove those (Insignificant Variables) whose P-value is more than Alpha/Level of Significance (0.05) one at a time.
+
+################### INSIGNIFICANT VARIABLE TREATMENT #####################
+
+########### REMOVAL 1 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Oregon") +I(State=="Nevada") + I(State=="Washington") + Coverage + Education 
++ EmploymentStatus + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim + Months.Since.Policy.Inception 
++ Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "State=="California" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 2 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Oregon") + I(State=="Washington") + Coverage + Education 
++ EmploymentStatus + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim + Months.Since.Policy.Inception 
++ Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "State=="Nevada" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 3 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + Coverage + Education 
++ EmploymentStatus + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim + Months.Since.Policy.Inception 
++ Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "State=="Oregon" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 4 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + Education 
++ EmploymentStatus + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim + Months.Since.Policy.Inception 
++ Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Coverage=="Extended" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 5 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="College") + I(Education=="Doctor") + I(Education=="Master")
++ EmploymentStatus + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim + Months.Since.Policy.Inception 
++ Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Education=="High School or Below" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 6 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + EmploymentStatus + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim 
++ Months.Since.Policy.Inception + Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Education=="College" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 7 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim 
++ Months.Since.Policy.Inception + Number_of_Policies + Policy.Type + Policy + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "EmploymentStatus=="Retired" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 8 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status + Monthly.Premium.Auto + Months.Since.Last.Claim 
++ Months.Since.Policy.Inception + Number_of_Policies + Policy.Type + Total.Claim.Amount + Vehicle.Class + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Policy" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 9 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + Policy.Type + Total.Claim.Amount + Vehicle.Class 
++ Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Months.Since.Last.Claim" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 10 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount + Vehicle.Class 
++ Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Policy.Type=="Special Auto" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 11 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="Two-Door Car") + I(Vehicle.Class=="SUV") + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Vehicle.Class=="Sports Car" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 12 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV") + Vehicle.Size, data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Vehicle.Class=="Two-Door Car" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 13 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income + Location.Code + Marital.Status 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV") + I(Vehicle.Size=="Medsize"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Vehicle.Size=="Small" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 14 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income 
++ I(Location.Code=="Urban") + Marital.Status 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV") + I(Vehicle.Size=="Medsize"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Location.Code=="Suburban" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 15 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income 
++ I(Location.Code=="Urban") + I(Marital.Status=="Married") 
++ Monthly.Premium.Auto + Months.Since.Policy.Inception + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV") + I(Vehicle.Size=="Medsize"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Marital.Status=="Single" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 16 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender + Income 
++ I(Marital.Status=="Married") + Months.Since.Policy.Inception
++ Monthly.Premium.Auto + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV") + I(Vehicle.Size=="Medsize"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Location.Code=="Urban" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 17 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender  
++ I(Marital.Status=="Married") + Months.Since.Policy.Inception
++ Monthly.Premium.Auto + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV") + I(Vehicle.Size=="Medsize"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Income" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 18 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave") + Gender  
++ I(Marital.Status=="Married") + Months.Since.Policy.Inception
++ Monthly.Premium.Auto + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Vehicle.Size=="Medsize" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 19 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(EmploymentStatus=="Medical Leave")  
++ I(Marital.Status=="Married") + Months.Since.Policy.Inception
++ Monthly.Premium.Auto + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount 
++ I(Vehicle.Class=="SUV"), data=AutoInsurance_training) 
+
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "Gender" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+########### REMOVAL 20 #############
+
+AutoInsurance_Model <- lm(Customer.Lifetime.Value ~ I(State=="Washington") + I(Coverage=="Premium") + I(Education=="Doctor") 
++ I(Education=="Master") + I(EmploymentStatus=="Employed") + I(Marital.Status=="Married") + Months.Since.Policy.Inception
++ Monthly.Premium.Auto + Number_of_Policies + I(Policy.Type=="Personal Auto") + Total.Claim.Amount + I(Vehicle.Class=="SUV"), data=AutoInsurance_training) 
+
+
+nrow(AutoInsurance_training)
+## creating the linear regression model for the data set "AutoInsurance_training" after removing the insignificant independent variable "EmploymentStatus=="Medical Leave" from the model "AutoInsurance_Model"..
+
+summary(AutoInsurance_Model) ## finding the summary of the model.
+
+
+vif(AutoInsurance_Model) ## Checking the Multi-collinearity in the model.
+
+AutoInsurance_training$Predicted <- fitted(AutoInsurance_Model) ## finding the predicted values of all the variables and inputting in the data set "AutoInsurance_training".
+
+head(AutoInsurance_training$Predicted)
+
+attach(AutoInsurance_training) ## Removing the seperators "$" symbol
+
+(sum((abs(Customer.Lifetime.Value-Predicted))/Customer.Lifetime.Value))/nrow(AutoInsurance_training)*100 ## Calculation of MAPE/Deviation.
+
+### Exporting the data set #########
+
+AutoInsurance$pred <- predict(AutoInsurance_Model,AutoInsurance_testing)
+head(AutoInsurance)
+write.csv(AutoInsurance,"done1.csv") ## Exporting the data set.
+tail(AutoInsurance)
+
+
+
+
+
+
+
+
+## Null Hypothesis: Residual Value is Normally distributed
+
+## Alternative Hypothesis: Residual Value is not Normally distributed
+
+## P-value should be > Alpha(0.05)
+
+AutoInsurance_training$Residual <- (AutoInsurance_training$Customer.Lifetime.Value-AutoInsurance_training$Predicted) ## Calculating the residual value and saving it as "Residual"
+
+Residue <- AutoInsurance_training$Residual ## saving the Residual separately as a vector "Residue"
+
+ad.test(Residue) ## Normality Distribution/ Anderson darling Test
+
+## The P-Value is less than 0.05. Hence, reject the Null Hypothesis. So, the Residual values are not normally distributed.
+## So, the Auto Correlation test needs to be done as the P-value of Normality distribution shouldn’t be less than 0.05.
+
+########## 3. ASSUMPTION: DURBIN WATSON TEST ###########
+
+## NULL HYPOTHESIS: There should be no correlation between the residual values.
+
+## ALTERNATIVE HYPOTHESIS: There should be correlation between the residual values. 
+
+## P-value should be > Alpha(0.05)
+
+dwt(AutoInsurance_Model) ## calculation of P-Value for the Durbin Watson Test
+
+## P-value > Alpha(0.05), hence failed to reject NULL HYPOTHESIS and there is no correlation.
+
+########## 4. ASSUMPTION: BREUSCH PAGAN TEST ###########
+
+## NULL HYPOTHESIS: Distribution of Residual Value should be Homoscedastic
+
+## ALTERNATIVE HYPOTHESIS: Distribution of Residual Value should be Heteroscedastic
+
+## P-value should be > Alpha(0.05)
+
+bptest(AutoInsurance_Model) ## calculation for homoscedastic/heteroscedastic
+
+## P-Value < Alpha(0.05)
+
+## Hence, reject the NULL HYPOTHESIS and distribution of residual is heteroscedastic.
